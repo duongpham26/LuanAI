@@ -1,4 +1,4 @@
-# Import necessary libraries
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -11,20 +11,16 @@ import joblib
 from rich.console import Console
 from rich.progress import Progress
 
-# Suppress warnings
 import warnings
 warnings.filterwarnings('ignore')
 
-# Create a console object
 console = Console()
 
-# Function to preprocess data
 def preprocess(dataframe, is_train=True):
     console.log("Preprocessing data...")
     cat_cols = ['protocol_type', 'service', 'flag']
     num_cols = [col for col in dataframe.columns if col not in cat_cols + ['outcome', 'level']]
     
-    # Handle categorical columns
     if is_train:
         console.log("Encoding categorical columns...")
         encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
@@ -74,36 +70,30 @@ def train_and_save_model(data_path):
     console.log("Converting outcome column to binary labels...")
     data['outcome'] = data['outcome'].apply(lambda x: 0 if x == 'normal' else 1)
     
-    # Preprocess the data
     data = preprocess(data)
     
-    # Separate features and target
     console.log("Splitting data into features and target...")
     X = data.drop(['outcome', 'level'], axis=1).values
     y = data['outcome'].values
     
-    # Split the data
     console.log("Splitting data into training and test sets...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     with Progress() as progress:
         train_task = progress.add_task("[green]Training models...", total=100)
         
-        # Train a Random Forest model 
         console.log("Training Random Forest model...")
         rf_model = RandomForestClassifier()
         rf_model.fit(X_train, y_train)
         joblib.dump(rf_model, "rf_model.pkl")
         progress.update(train_task, advance=50)
         
-        # Train a Decision Tree model
         console.log("Training Decision Tree model...")
         dt_model = DecisionTreeClassifier(max_depth=3)
         dt_model.fit(X_train, y_train)
         joblib.dump(dt_model, "dt_model.pkl")
         progress.update(train_task, advance=50)
-    
-    # Evaluate models
+        
     console.log("Evaluating models...")
     rf_predictions = rf_model.predict(X_test)
     dt_predictions = dt_model.predict(X_test)
@@ -112,7 +102,6 @@ def train_and_save_model(data_path):
 
     console.log("[green]Models saved successfully![/green]")
 
-# Predict function
 def predict(input_data):
     console.log("Loading models and preprocessors for prediction...")
     scaler = joblib.load("scaler.pkl")
@@ -129,7 +118,6 @@ def predict(input_data):
     
     return {"Random Forest": rf_prediction, "Decision Tree": dt_prediction}
 
-# Main section with user interaction
 if __name__ == "__main__":
     console.log("[bold cyan]Starting Manual Intrusion Detection System (IDS)...[/bold cyan]")
     train_and_save_model("KDDTrain+.txt")
@@ -227,7 +215,6 @@ if __name__ == "__main__":
         'dst_host_srv_rerror_rate': 0.00}
     ]
 
-    # Load the trained models and preprocessors
     console.log("[bold cyan]Loading models and preprocessors...[/bold cyan]")
     scaler = joblib.load("scaler.pkl")
     encoder = joblib.load("encoder.pkl")
@@ -235,13 +222,11 @@ if __name__ == "__main__":
     dt_model = joblib.load("dt_model.pkl")
 
     while True:
-        # Display the menu
         console.print("\n[bold yellow]Manual IDS Menu[/bold yellow]")
         console.print("Enter a number (1-10) to simulate data:")
         console.print("1 - 10: Predefined scenarios")
         console.print("0: Exit")
 
-        # Get user input
         user_input = input("Your choice: ")
 
         try:
@@ -250,28 +235,25 @@ if __name__ == "__main__":
             console.print("[red]Invalid input. Please enter a number.[/red]")
             continue
 
-        # Exit condition
+        
         if choice == 0:
             console.log("[bold cyan]Exiting Manual IDS. Goodbye![/bold cyan]")
             break
 
-        # Check if choice is valid
+        
         if 1 <= choice <= len(predefined_data):
             console.log(f"[bold cyan]Processing choice {choice}...[/bold cyan]")
             
-            # Fetch predefined data based on choice
             test_data = pd.DataFrame([predefined_data[choice - 1]])
             
-            # Preprocess input data
+            
             console.log("Preprocessing input data...")
             test_data = preprocess(test_data, is_train=False)
 
-            # Make predictions
             console.log("Making predictions...")
             rf_prediction = rf_model.predict(test_data)[0]
             dt_prediction = dt_model.predict(test_data)[0]
 
-            # Display results
             rf_label = "Normal" if rf_prediction == 0 else "Attack"
             dt_label = "Normal" if dt_prediction == 0 else "Attack"
             console.print(f"[green]Random Forest Prediction:[/green] {rf_label}")
